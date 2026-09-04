@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎵 Hide in your own file</title>
+<style>
+  :root{
+    --bg:#12101a; --panel:#1c1928; --panel2:#262236; --line:#332e47;
+    --ink:#ece9f5; --dim:#9a93b5; --accent:#ffcc4d; --accent-ink:#2a2100;
+    --good:#6fe3a8; --bad:#ff7a8a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);padding:0 0 60px;
+    font:16px/1.6 -apple-system,"Segoe UI",Rubik,system-ui,sans-serif;
+    display:flex;justify-content:center}
+  #app{width:100%;max-width:560px;display:flex;flex-direction:column}
+  header{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--panel);
+    display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+  header .emoji{font-size:26px} header h1{margin:0;font-size:17px;flex:1}
+  header .sub{font-size:12px;color:var(--dim)}
+  main{padding:16px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  label{font-size:13px;color:var(--dim);display:block;margin-bottom:4px}
+  input,textarea{width:100%;padding:11px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:11px;color:var(--ink);font:inherit}
+  textarea{min-height:80px;resize:vertical}
+  input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+  button{font:inherit;font-weight:600;border:0;border-radius:11px;padding:12px 16px;
+    background:var(--accent);color:var(--accent-ink);cursor:pointer}
+  button.sec{background:var(--panel2);color:var(--ink)}
+  button:disabled{opacity:.5;cursor:default}
+  .row{display:flex;gap:8px}.row>*{flex:1}
+  .tabs{display:flex;gap:6px}
+  .tabs button{flex:1;background:transparent;color:var(--dim);padding:9px}
+  .tabs button[aria-pressed="true"]{background:var(--panel2);color:var(--ink)}
+  .hidden{display:none!important}
+  .note{font-size:13px;color:var(--dim)}
+  .status{font-size:13px;min-height:20px;margin-top:8px}
+  .status.good{color:var(--good)} .status.bad{color:var(--bad)}
+  audio{width:100%;margin-top:10px;height:40px}
+  .msg{padding:10px 12px;border-radius:11px;background:var(--panel2);
+    white-space:pre-wrap;word-break:break-word;margin-top:8px;font-size:19px;font-weight:700}
+  .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+  #debug{background:#0d0b14;border:1px solid var(--line);border-radius:11px;
+    padding:10px 12px;margin-top:8px;max-height:300px;overflow:auto;
+    font:12px/1.5 ui-monospace,Consolas,monospace;color:#c9c3e0;
+    white-space:pre;direction:ltr;text-align:left}
+  #debug .t{color:var(--dim)} #debug .e{color:var(--bad)} #debug .k{color:var(--good)}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <span class="emoji">🎵</span>
+  <div style="flex:1">
+    <h1>Hide in your own file</h1>
+    <div class="sub">An encrypted message inside a song or voice clip — survives WhatsApp</div>
+  </div>
+</header>
+<main>
+
+  <div class="card">
+    <label>Room name</label>
+    <input id="room" autocomplete="off" placeholder="e.g. class 9B">
+    <label style="margin-top:10px">Password</label>
+    <input id="pass" type="password" autocomplete="off" placeholder="something only you know">
+    <div class="note" style="margin-top:8px">No server accounts. A "room" is just whoever knows the name and password.</div>
+  </div>
+
+  <div class="tabs">
+    <button id="tabHide" aria-pressed="true">Hide</button>
+    <button id="tabReveal" aria-pressed="false">Reveal</button>
+  </div>
+
+  <!-- HIDE -->
+  <div id="paneHide" class="card">
+    <label>Message to hide</label>
+    <textarea id="msg" maxlength="800" placeholder="Type here..."></textarea>
+    <div class="note" id="hint" style="margin-top:6px"></div>
+
+    <label style="margin-top:12px">Song / voice file to hide it in</label>
+    <button id="coverBtn" class="sec" style="width:100%">Choose a song or audio file</button>
+    <input id="coverIn" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.opus,.flac" class="hidden">
+    <div class="note" id="coverName" style="margin-top:6px">
+      Nothing is added to the file and nothing is cut — it stays a normal, full-length
+      audio file. Only the room and password reveal the text.
+    </div>
+
+    <button id="makeBtn" style="width:100%;margin-top:12px">Hide in my file</button>
+    <div class="bar hidden" id="makeBar"><i id="makeFill"></i></div>
+    <div class="status" id="hideStatus"></div>
+
+    <div id="outCard" class="hidden" style="margin-top:6px">
+      <audio id="outAudio" controls></audio>
+      <div class="row" style="margin-top:10px">
+        <button id="shareBtn" class="sec">Share</button>
+        <button id="dlBtn" class="sec">Download</button>
+      </div>
+      <div class="note" style="margin-top:8px">Send it as a normal audio file. Without the room and password it is just a song.</div>
+    </div>
+  </div>
+
+  <!-- REVEAL -->
+  <div id="paneReveal" class="card hidden">
+    <div class="note">Got a file? Enter the room and password above, then pick it here:</div>
+    <button id="fileBtn" style="width:100%;margin-top:10px">Choose a file and reveal</button>
+    <input id="fileIn" type="file" accept="audio/*,.wav,.ogg,.opus,.m4a,.mp3,.aac,.mpeg,.flac" class="hidden">
+    <div id="fileName" class="note" style="margin-top:8px"></div>
+    <div class="bar hidden" id="revBar"><i id="revFill"></i></div>
+    <div class="status" id="revStatus"></div>
+    <div id="revOut"></div>
+  </div>
+
+  <!-- DEBUG -->
+  <div class="card">
+    <div class="row" style="align-items:center">
+      <strong style="flex:2">Diagnostic log</strong>
+      <button class="sec" id="copyBtn" style="flex:1;padding:8px">Copy all</button>
+      <button class="sec" id="clearBtn" style="flex:1;padding:8px">Clear</button>
+    </div>
+    <div class="note" style="margin-top:6px">If something fails, click "Copy all" and send it.</div>
+    <div id="debug"></div>
+  </div>
+
+</main>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const API = '/api';
+let outBlob = null, outName = 'audio.mp3', selectedFile = null, coverFile = null;
+
+/* -------------------------------------------------------------------- log */
+const logLines = [];
+function log(text, kind) {
+  const stamp = new Date().toISOString().slice(11, 19);
+  for (const line of String(text).split('\n')) {
+    logLines.push(`[${stamp}] ${line}`);
+    const el = document.createElement('div');
+    if (kind) el.className = kind;
+    el.textContent = `[${stamp}] ${line}`;
+    $('debug').appendChild(el);
+  }
+  $('debug').scrollTop = $('debug').scrollHeight;
+}
+function logServer(lines) { (lines || []).forEach(l => log(l)); }
+$('copyBtn').onclick = async () => {
+  try { await navigator.clipboard.writeText(logLines.join('\n')); $('copyBtn').textContent = 'Copied ✓'; }
+  catch (e) { log('clipboard blocked — select the text manually', 'e'); }
+};
+$('clearBtn').onclick = () => { logLines.length = 0; $('debug').innerHTML = ''; };
+window.addEventListener('error', e => log('page error: ' + e.message, 'e'));
+window.addEventListener('unhandledrejection', e => log('unhandled: ' + e.reason, 'e'));
+
+/* --------------------------------------------------------------- plumbing */
+async function call(endpoint, payload) {
+  const t0 = performance.now();
+  log('POST ' + endpoint, 't');
+  let res;
+  try {
+    res = await fetch(API + endpoint, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) { log('network error: ' + e.message + ' — is the server running?', 'e'); throw new Error('No connection to the server'); }
+  const ms = Math.round(performance.now() - t0);
+  const data = await res.json().catch(() => ({ error: 'server sent no JSON' }));
+  log(`  HTTP ${res.status} in ${ms} ms`, 't');
+  logServer(data.debug);
+  if (!res.ok) { log('  error: ' + data.error, 'e'); throw new Error(data.error || ('HTTP ' + res.status)); }
+  return data;
+}
+function creds() {
+  const room = $('room').value.trim(), password = $('pass').value;
+  if (!room || !password) throw new Error('Room name and password are required');
+  return { room, password };
+}
+function setStatus(id, text, kind) { const e = $(id); e.textContent = text || ''; e.className = 'status' + (kind ? ' ' + kind : ''); }
+function showTab(hide) {
+  $('paneHide').classList.toggle('hidden', !hide);
+  $('paneReveal').classList.toggle('hidden', hide);
+  $('tabHide').setAttribute('aria-pressed', hide);
+  $('tabReveal').setAttribute('aria-pressed', !hide);
+}
+$('tabHide').onclick = () => showTab(true);
+$('tabReveal').onclick = () => showTab(false);
+
+/* ----------------------------------------------------------------- encode */
+function _codedSize(total) {
+  let out = 0, left = total;
+  while (left > 0) {
+    const n = Math.min(150, left);
+    out += n + Math.max(10, Math.min(64, 2 * Math.ceil(n / 8)));
+    left -= n;
+  }
+  return out;
+}
+function _needSeconds(msgBytes) {
+  const bodyLen = msgBytes + 29; // 1 flag + 12 nonce + 16 AES-GCM tag
+  const nb = (14 + _codedSize(bodyLen)) * 8; // HDR_LEN=14, bits
+  return Math.round(nb * 8 * 2048 / 44100);  // MIN_VOTES=8, FH=2048, RATE=44100
+}
+$('msg').addEventListener('input', () => {
+  const n = new TextEncoder().encode($('msg').value).length;
+  const needSec = _needSeconds(n);
+  $('hint').textContent = n
+    ? `needs about ${Math.floor(needSec / 60)}:${String(needSec % 60).padStart(2, '0')} of your file (a normal song is plenty)`
+    : 'The longer the file you upload, the longer the message it can hold.';
+});
+
+$('coverBtn').onclick = () => $('coverIn').click();
+$('coverIn').onchange = e => {
+  coverFile = e.target.files[0]; e.target.value = '';
+  $('coverName').textContent = coverFile
+    ? `${coverFile.name} · ${(coverFile.size / 1024 / 1024).toFixed(2)} MB — nothing is cut, the file keeps its full length.`
+    : '';
+};
+
+$('makeBtn').onclick = async () => {
+  const text = $('msg').value.trim();
+  if (!text) return;
+  let c;
+  try { c = creds(); } catch (e) { setStatus('hideStatus', e.message, 'bad'); return; }
+  if (!coverFile) { setStatus('hideStatus', 'Choose a song or audio file first', 'bad'); return; }
+
+  $('makeBtn').disabled = true;
+  $('outCard').classList.add('hidden');
+  $('makeBar').classList.remove('hidden');
+  $('makeFill').style.width = '20%';
+  setStatus('hideStatus', `Hiding the message inside ${coverFile.name}...`);
+  try {
+    const cover_b64 = await fileToB64(coverFile);
+    $('makeFill').style.width = '45%';
+    const data = await call('/encode', { ...c, text, carrier: 'cover', cover_b64, cover_name: coverFile.name });
+    $('makeFill').style.width = '100%';
+    outBlob = b64ToBlob(data.audio_b64, 'audio/mpeg');
+    outName = data.filename;
+    $('outAudio').src = URL.createObjectURL(outBlob);
+    $('outCard').classList.remove('hidden');
+    const mb = data.bytes / 1024 / 1024;
+    setStatus('hideStatus',
+      `${data.verified ? '✓ ready and verified' : '⚠ created but not verified'} · ` +
+      `${data.duration.toFixed(0)} s · ${mb.toFixed(2)} MB — sounds identical, message inside`,
+      data.verified ? 'good' : 'bad');
+  } catch (e) {
+    setStatus('hideStatus', 'Error: ' + e.message, 'bad');
+  } finally {
+    $('makeBtn').disabled = false;
+    setTimeout(() => $('makeBar').classList.add('hidden'), 400);
+  }
+};
+
+$('dlBtn').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(outBlob); a.download = outName; a.click();
+  log('downloaded ' + outName);
+};
+$('shareBtn').onclick = async () => {
+  const f = new File([outBlob], outName, { type: outBlob.type });
+  if (navigator.canShare && navigator.canShare({ files: [f] })) {
+    try { await navigator.share({ files: [f] }); log('shared via the system sheet'); }
+    catch (e) { log('share cancelled: ' + e.message, 't'); }
+  } else { setStatus('hideStatus', 'This browser cannot share files — use Download', 'bad'); }
+};
+
+/* ----------------------------------------------------------------- decode */
+$('fileBtn').onclick = () => $('fileIn').click();
+$('fileIn').onchange = async e => {
+  selectedFile = e.target.files[0]; e.target.value = '';
+  if (!selectedFile) return;
+  $('fileName').textContent = `${selectedFile.name} · ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
+  log(`picked ${selectedFile.name} (${selectedFile.size} bytes)`);
+  let c;
+  try { c = creds(); } catch (err) { setStatus('revStatus', err.message, 'bad'); return; }
+  $('revOut').innerHTML = '';
+  $('revBar').classList.remove('hidden');
+  $('revFill').style.width = '30%';
+  setStatus('revStatus', 'Reading and searching for a message...');
+  try {
+    const b64 = await fileToB64(selectedFile);
+    $('revFill').style.width = '60%';
+    const data = await call('/decode', { ...c, audio_b64: b64, filename: selectedFile.name });
+    $('revFill').style.width = '100%';
+    setStatus('revStatus', 'Revealed:', 'good');
+    $('revOut').innerHTML = `<div class="msg"></div><div class="note" style="margin-top:6px"></div>`;
+    $('revOut').firstChild.textContent = data.text;
+    $('revOut').lastChild.textContent = 'from file: ' + selectedFile.name;
+  } catch (err) {
+    setStatus('revStatus', err.message, 'bad');
+  } finally {
+    setTimeout(() => $('revBar').classList.add('hidden'), 400);
+  }
+};
+
+/* ------------------------------------------------------------------ utils */
+function fileToB64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = () => reject(new Error('could not read the file'));
+    r.readAsDataURL(file);
+  });
+}
+function b64ToBlob(b64, type) {
+  const bin = atob(b64), buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return new Blob([buf], { type });
+}
+
+/* Remember the room between visits. */
+const saved = JSON.parse(localStorage.getItem('awl.rp') || 'null');
+if (saved) { $('room').value = saved.r || ''; $('pass').value = saved.p || ''; }
+for (const id of ['room', 'pass'])
+  $(id).addEventListener('change', () => localStorage.setItem('awl.rp', JSON.stringify({ r: $('room').value, p: $('pass').value })));
+
+$('msg').dispatchEvent(new Event('input'));
+log('ready');
+</script>
+</body>
+</html>

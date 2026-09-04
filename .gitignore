@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Never commit personal / copyrighted audio. Bring your own; the app takes
+# uploads at runtime.
+*.wav
+*.mp3
+*.ogg
+*.opus
+*.m4a
+*.mpeg
+*.flac
+*.aac
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
